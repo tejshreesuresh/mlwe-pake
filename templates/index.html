@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post-Quantum Secure Group Chat</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            grid-template-rows: 1fr 250px;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+
+        .chat-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .members-panel {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .log-panel {
+            background: #1a1a1a;
+            color: #00ff00;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            overflow-y: auto;
+            grid-column: 1 / -1;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .chat-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 16px;
+            border-radius: 15px;
+            max-width: 80%;
+            word-wrap: break-word;
+        }
+
+        .message.own {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.other {
+            background: #e9ecef;
+            color: #333;
+        }
+
+        .message-header {
+            font-size: 0.8rem;
+            opacity: 0.7;
+            margin-bottom: 5px;
+        }
+
+        .members-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .member-item {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 2px 0;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected {
+            background: #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            font-weight: 600;
+            z-index: 1000;
+        }
+
+        .status-connecting {
+            background: #ffc107;
+        }
+
+        .status-connected {
+            background: #28a745;
+        }
+
+        .status-disconnected {
+            background: #dc3545;
+        }
+
+        .auth-form {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            z-index: 1000;
+            min-width: 400px;
+        }
+
+        .auth-form h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .auth-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .auth-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 200px 200px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .auth-form {
+                min-width: 90%;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        {% raw %}
+        const { useState, useEffect, useRef } = React;
+
+        // Client-side cryptographic operations
+        class ClientCrypto {
+            constructor() {
+                this.sessionKey = null;
+                this.gtk = null;
+                this.epoch = 0;
+                this.serverPk = null;
+                this.clientPk = null;
+                this.clientSk = null;
+            }
+
+            async generateKeys() {
+                // For demo purposes, we'll use simple key generation
+                // In a real implementation, this would use the oqs library
+                this.clientSk = this.getRandomBytes(32);
+                this.clientPk = this.getRandomBytes(32);
+                return { publicKey: this.clientPk, secretKey: this.clientSk };
+            }
+
+            getRandomBytes(length) {
+                // Simple random byte generation for demo
+                const bytes = new Uint8Array(length);
+                for (let i = 0; i < length; i++) {
+                    bytes[i] = Math.floor(Math.random() * 256);
+                }
+                return bytes;
+            }
+
+            async encapsulate(publicKey, payload = null) {
+                // Simplified KEM encapsulation for demo
+                const sharedSecret = this.getRandomBytes(32);
+                const ciphertext = payload || this.getRandomBytes(32);
+                return { ciphertext, sharedSecret };
+            }
+
+            async decapsulate(secretKey, ciphertext) {
+                // Simplified KEM decapsulation for demo
+                return this.getRandomBytes(32);
+            }
+
+            async hashPassword(password, salt) {
+                // Simple password hashing for demo
+                const encoder = new TextEncoder();
+                const data = encoder.encode(password + salt);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                return new Uint8Array(hashBuffer);
+            }
+
+            async deriveFinalSecret(secret1, secret2, transcript) {
+                // Simple key derivation for demo
+                const combined = new Uint8Array(secret1.length + secret2.length + transcript.length);
+                combined.set(secret1, 0);
+                combined.set(secret2, secret1.length);
+                combined.set(transcript, secret1.length + secret2.length);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', combined);
+                return new Uint8Array(hashBuffer);
+            }
+
+            encryptWithGTK(message) {
+                if (!this.gtk) return null;
+                const encoder = new TextEncoder();
+                const messageBytes = encoder.encode(message);
+                const encrypted = new Uint8Array(messageBytes.length);
+                for (let i = 0; i < messageBytes.length; i++) {
+                    encrypted[i] = messageBytes[i] ^ this.gtk[i % this.gtk.length];
+                }
+                return btoa(String.fromCharCode(...encrypted));
+            }
+
+            decryptWithGTK(encryptedMessage) {
+                if (!this.gtk) return null;
+                const encryptedBytes = new Uint8Array(atob(encryptedMessage).split('').map(c => c.charCodeAt(0)));
+                const decrypted = new Uint8Array(encryptedBytes.length);
+                for (let i = 0; i < encryptedBytes.length; i++) {
+                    decrypted[i] = encryptedBytes[i] ^ this.gtk[i % this.gtk.length];
+                }
+                return new TextDecoder().decode(decrypted);
+            }
+        }
+
+        function App() {
+            const [connectionStatus, setConnectionStatus] = useState('disconnected');
+            const [ws, setWs] = useState(null);
+            const [clientId, setClientId] = useState(null);
+            const [username, setUsername] = useState('');
+            const [messages, setMessages] = useState([]);
+            const [users, setUsers] = useState([]);
+            const [logs, setLogs] = useState([]);
+            const [currentMessage, setCurrentMessage] = useState('');
+            const [showAuthForm, setShowAuthForm] = useState(true);
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
+            
+            // Debug logging for state changes
+            useEffect(() => {
+                console.log('🔄 State changed - isAuthenticated:', isAuthenticated, 'showAuthForm:', showAuthForm);
+            }, [isAuthenticated, showAuthForm]);
+            
+            // Debug logging for WebSocket connection
+            useEffect(() => {
+                console.log('🔌 WebSocket state changed:', ws ? 'connected' : 'disconnected');
+            }, [ws]);
+            
+            const crypto = useRef(new ClientCrypto());
+            const messagesEndRef = useRef(null);
+            const logsEndRef = useRef(null);
+
+            const scrollToBottom = (ref) => {
+                ref.current?.scrollIntoView({ behavior: 'smooth' });
+            };
+
+            useEffect(() => {
+                scrollToBottom(messagesEndRef);
+            }, [messages]);
+
+            useEffect(() => {
+                scrollToBottom(logsEndRef);
+            }, [logs]);
+
+            const connectWebSocket = (username) => {
+                console.log('🔌 Starting WebSocket connection...');
+                const socket = io('http://localhost:8080');
+                
+                socket.on('connect', () => {
+                    console.log('✅ WebSocket connected successfully');
+                    setConnectionStatus('connected');
+                    setWs(socket);
+                    addLog('Connected to server');
+                    
+                    // Send join message
+                    const clientId = `client_${Math.random().toString(36).substr(2, 9)}`;
+                    setClientId(clientId);
+                    console.log('📤 Sending join request:', { clientId, username });
+                    
+                    socket.emit('join', {
+                        client_id: clientId,
+                        username: username
+                    });
+                });
+
+                socket.on('disconnect', () => {
+                    console.log('❌ WebSocket disconnected');
+                    setConnectionStatus('disconnected');
+                    setWs(null);
+                    setIsAuthenticated(false);
+                    addLog('Disconnected from server');
+                });
+
+                socket.on('connect_error', (error) => {
+                    console.error('🚨 Socket connection error:', error);
+                    setConnectionStatus('disconnected');
+                    addLog(`Connection error: ${error.message}`);
+                });
+
+                // Set up event listeners
+                socket.on('joined', (data) => {
+                    console.log('👤 Joined event received:', data);
+                    addLog(`Joined as ${data.username}`);
+                });
+
+                socket.on('pake_challenge', (data) => {
+                    console.log('🔐 PAKE challenge received:', data);
+                    handlePAKEChallenge(data, socket);
+                });
+
+                socket.on('pake_success', (data) => {
+                    console.log('🎉 PAKE success received:', data);
+                    console.log('🔄 Setting authenticated=true, showAuthForm=false');
+                    addLog('PAKE authentication successful!');
+
+                    // Store the session key for GTK decryption
+                    if (data.session_key) {
+                        const sessionKeyBytes = new Uint8Array(atob(data.session_key).split('').map(c => c.charCodeAt(0)));
+                        crypto.current.sessionKey = sessionKeyBytes;
+                        console.log('✅ Session key stored');
+                    }
+
+                    setIsAuthenticated(true);
+                    setShowAuthForm(false);
+                });
+
+                socket.on('pake_error', (data) => {
+                    console.log('❌ PAKE error received:', data);
+                    addLog(`PAKE error: ${data.message}`);
+                });
+
+                socket.on('gtk_update', (data) => {
+                    console.log('🔑 GTK update received:', data);
+                    handleGTKUpdate(data);
+                });
+
+                socket.on('group_chat_message', (data) => {
+                    console.log('💬 Group chat message received:', data);
+                    addMessage(data.username, data.message, data.timestamp);
+                });
+
+                socket.on('user_list_update', (data) => {
+                    console.log('👥 User list update received:', data);
+                    setUsers(data.users);
+                });
+
+                socket.on('log', (data) => {
+                    console.log('📝 Server log:', data.message);
+                    addLog(data.message);
+                });
+
+                socket.on('error', (data) => {
+                    console.log('🚨 Server error:', data);
+                    addLog(`Error: ${data.message}`);
+                });
+
+                setConnectionStatus('connecting');
+            };
+
+
+            const handlePAKEChallenge = async (data, socket) => {
+                try {
+                    console.log('🔐 Processing PAKE challenge...');
+                    if (!socket || !socket.connected) {
+                        console.log('❌ WebSocket not connected');
+                        addLog('WebSocket not connected');
+                        return;
+                    }
+
+                    addLog('Starting PAKE authentication...');
+
+                    // Use the correct password for demo
+                    const password = "correct-horse-battery-staple";
+                    const salt = crypto.current.getRandomBytes(16);
+
+                    // Compute proper PBKDF2-HMAC-SHA256 hash to match server expectations
+                    const encoder = new TextEncoder();
+                    const passwordBytes = encoder.encode(password);
+
+                    // Import the password as a key
+                    const keyMaterial = await window.crypto.subtle.importKey(
+                        'raw',
+                        passwordBytes,
+                        'PBKDF2',
+                        false,
+                        ['deriveBits']
+                    );
+
+                    // Derive 32 bytes using PBKDF2-HMAC-SHA256 with 100000 iterations
+                    const derivedBits = await window.crypto.subtle.deriveBits(
+                        {
+                            name: 'PBKDF2',
+                            salt: salt,
+                            iterations: 100000,
+                            hash: 'SHA-256'
+                        },
+                        keyMaterial,
+                        256 // 32 bytes * 8 bits
+                    );
+
+                    const passwordHash = new Uint8Array(derivedBits);
+
+                    console.log('🔑 Generated salt and PBKDF2 password hash');
+
+                    // Combine salt and password hash for the payload
+                    const payload = new Uint8Array(salt.length + passwordHash.length);
+                    payload.set(salt, 0);
+                    payload.set(passwordHash, salt.length);
+
+                    // Create a client message that matches server expectations
+                    const clientMessage = {
+                        type: "CLIENT_MSG1",
+                        client_id: clientId,
+                        client_kem_pk: btoa(String.fromCharCode(...crypto.current.getRandomBytes(32))),
+                        ciphertext_payload: btoa(String.fromCharCode(...payload)),
+                        salt: btoa(String.fromCharCode(...salt))
+                    };
+
+                    console.log('📤 Sending PAKE message:', clientMessage);
+
+                    // Send the PAKE message using the socket parameter
+                    socket.emit('pake_message', {
+                        message: JSON.stringify(clientMessage)
+                    });
+                    console.log('✅ PAKE message sent successfully');
+
+                } catch (error) {
+                    console.error('🚨 PAKE challenge error:', error);
+                    addLog(`PAKE challenge error: ${error.message}`);
+                }
+            };
+
+
+            const handleGTKUpdate = async (data) => {
+                try {
+                    console.log('🔑 Processing GTK update...');
+                    const encryptedGTK = new Uint8Array(atob(data.encrypted_gtk).split('').map(c => c.charCodeAt(0)));
+                    
+                    // Decrypt GTK with session key (simplified)
+                    const decryptedGTK = new Uint8Array(encryptedGTK.length);
+                    for (let i = 0; i < encryptedGTK.length; i++) {
+                        decryptedGTK[i] = encryptedGTK[i] ^ crypto.current.sessionKey[i % crypto.current.sessionKey.length];
+                    }
+                    
+                    crypto.current.gtk = decryptedGTK;
+                    crypto.current.epoch = data.epoch;
+                    
+                    console.log('✅ GTK decrypted and stored for epoch:', data.epoch);
+                    addLog(`GTK updated for epoch ${data.epoch}`);
+
+                } catch (error) {
+                    console.error('🚨 GTK update error:', error);
+                    addLog(`GTK update error: ${error.message}`);
+                }
+            };
+
+            const addMessage = (username, encryptedMessage, timestamp) => {
+                const decryptedMessage = crypto.current.decryptWithGTK(encryptedMessage);
+                if (decryptedMessage) {
+                    setMessages(prev => [...prev, {
+                        username,
+                        message: decryptedMessage,
+                        timestamp,
+                        isOwn: username === username
+                    }]);
+                }
+            };
+
+            const addLog = (message) => {
+                setLogs(prev => [...prev, message]);
+            };
+
+            const sendMessage = () => {
+                console.log('📤 Attempting to send message...');
+                console.log('Current state:', {
+                    hasMessage: !!currentMessage.trim(),
+                    isAuthenticated,
+                    hasGTK: !!crypto.current.gtk,
+                    hasWS: !!ws
+                });
+                
+                if (!currentMessage.trim() || !isAuthenticated || !crypto.current.gtk || !ws) {
+                    console.log('❌ Cannot send message - missing requirements');
+                    return;
+                }
+                
+                const encryptedMessage = crypto.current.encryptWithGTK(currentMessage);
+                if (encryptedMessage) {
+                    console.log('📤 Sending encrypted message:', encryptedMessage);
+                    ws.emit('group_chat_message', {
+                        message: encryptedMessage
+                    });
+                    setCurrentMessage('');
+                    console.log('✅ Message sent successfully');
+                } else {
+                    console.log('❌ Failed to encrypt message');
+                }
+            };
+
+            const handleKeyPress = (e) => {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            };
+
+            const handleAuth = () => {
+                console.log('🔐 Starting authentication for user:', username);
+                if (username.trim()) {
+                    connectWebSocket(username.trim());
+                } else {
+                    console.log('❌ No username provided');
+                }
+            };
+
+            const getStatusColor = () => {
+                switch (connectionStatus) {
+                    case 'connecting': return 'status-connecting';
+                    case 'connected': return 'status-connected';
+                    default: return 'status-disconnected';
+                }
+            };
+
+            return (
+                <div className="app-container">
+                    <div className="header">
+                        <h1>🔐 Post-Quantum Secure Group Chat</h1>
+                        <p>Demonstrating MLWE-PAKE Protocol with Group Key Management</p>
+                    </div>
+
+                    <div className={`connection-status ${getStatusColor()}`}>
+                        {connectionStatus.toUpperCase()}
+                    </div>
+
+                    {showAuthForm && (
+                        <div className="auth-form">
+                            <h2>Join Secure Group Chat</h2>
+                            <div className="form-group">
+                                <label htmlFor="username">Username</label>
+                                <input
+                                    type="text"
+                                    id="username"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    placeholder="Enter your username"
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAuth()}
+                                />
+                            </div>
+                            <button 
+                                className="auth-button"
+                                onClick={handleAuth}
+                                disabled={!username.trim() || connectionStatus === 'connecting'}
+                            >
+                                {connectionStatus === 'connecting' ? 'Connecting...' : 'Join Chat'}
+                            </button>
+                        </div>
+                    )}
+
+                    {!showAuthForm && (
+                        <div className="main-content">
+                            <div className="chat-panel">
+                                <div className="chat-header">
+                                    Secure Group Chat
+                                </div>
+                                <div className="chat-messages">
+                                    {messages.map((msg, index) => (
+                                        <div key={index} className={`message ${msg.isOwn ? 'own' : 'other'}`}>
+                                            <div className="message-header">
+                                                {msg.username} • {new Date(msg.timestamp).toLocaleTimeString()}
+                                            </div>
+                                            <div>{msg.message}</div>
+                                        </div>
+                                    ))}
+                                    <div ref={messagesEndRef} />
+                                </div>
+                                <div className="chat-input-container">
+                                    <input
+                                        type="text"
+                                        className="chat-input"
+                                        value={currentMessage}
+                                        onChange={(e) => setCurrentMessage(e.target.value)}
+                                        onKeyPress={handleKeyPress}
+                                        placeholder="Type your message..."
+                                        disabled={!isAuthenticated}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="members-panel">
+                                <div className="members-header">
+                                    Group Members ({users.length})
+                                </div>
+                                {users.map((user, index) => (
+                                    <div key={index} className="member-item">
+                                        <span className={`status-indicator status-connected`}></span>
+                                        {user.username}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="log-panel">
+                                <div style={{ marginBottom: '15px', fontWeight: 'bold', color: '#00ff00' }}>
+                                    Protocol Log
+                                </div>
+                                {logs.map((log, index) => (
+                                    <div key={index} className="log-entry">
+                                        {log}
+                                    </div>
+                                ))}
+                                <div ref={logsEndRef} />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+        {% endraw %}
+    </script>
+</body>
+</html>

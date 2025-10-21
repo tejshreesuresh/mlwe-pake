@@ -1,2 +1,6 @@
-oqs==0.10.2
-cryptography 
+# oqs library available locally
+cryptography
+flask==2.3.3
+flask-socketio==5.3.6
+python-socketio==5.9.0
+eventlet==0.33.3 
