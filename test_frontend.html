@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Test</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .log { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; }
+        input { padding: 8px; margin: 5px; }
+    </style>
+</head>
+<body>
+    <h1>Frontend Test</h1>
+    <div>
+        <input type="text" id="username" placeholder="Username" value="testuser">
+        <button onclick="connect()">Connect</button>
+        <button onclick="join()">Join</button>
+        <button onclick="sendMessage()">Send Message</button>
+    </div>
+    
+    <div id="status">Disconnected</div>
+    <div id="logs"></div>
+    
+    <script>
+        let socket = null;
+        let authenticated = false;
+        let gtk = null;
+        
+        function log(message, type = 'log') {
+            const logs = document.getElementById('logs');
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logs.appendChild(div);
+            logs.scrollTop = logs.scrollHeight;
+        }
+        
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+        }
+        
+        function connect() {
+            if (socket) {
+                socket.disconnect();
+            }
+            
+            socket = io('http://localhost:8080');
+            
+            socket.on('connect', () => {
+                log('Connected to server', 'success');
+                updateStatus('Connected');
+            });
+            
+            socket.on('disconnect', () => {
+                log('Disconnected from server', 'error');
+                updateStatus('Disconnected');
+                authenticated = false;
+            });
+            
+            socket.on('connect_error', (error) => {
+                log(`Connection error: ${error.message}`, 'error');
+                updateStatus('Connection Error');
+            });
+            
+            socket.on('joined', (data) => {
+                log(`Joined as ${data.username}`, 'success');
+            });
+            
+            socket.on('pake_challenge', (data) => {
+                log('Received PAKE challenge');
+                handlePAKEChallenge(data);
+            });
+            
+            socket.on('pake_success', (data) => {
+                log('PAKE authentication successful!', 'success');
+                authenticated = true;
+            });
+            
+            socket.on('pake_error', (data) => {
+                log(`PAKE error: ${data.message}`, 'error');
+            });
+            
+            socket.on('gtk_update', (data) => {
+                log(`Received GTK update (epoch: ${data.epoch})`, 'success');
+                gtk = data.encrypted_gtk;
+            });
+            
+            socket.on('user_list_update', (data) => {
+                const users = data.users.map(u => u.username).join(', ');
+                log(`Users: ${users}`, 'success');
+            });
+            
+            socket.on('group_chat_message', (data) => {
+                log(`Message from ${data.username}: ${data.message}`, 'success');
+            });
+            
+            socket.on('log', (data) => {
+                log(`Server: ${data.message}`);
+            });
+            
+            socket.on('error', (data) => {
+                log(`Error: ${data.message}`, 'error');
+            });
+        }
+        
+        function join() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server', 'error');
+                return;
+            }
+            
+            const username = document.getElementById('username').value;
+            if (!username.trim()) {
+                log('Please enter a username', 'error');
+                return;
+            }
+            
+            const clientId = `client_${Math.random().toString(36).substr(2, 9)}`;
+            socket.emit('join', {
+                client_id: clientId,
+                username: username
+            });
+            
+            log(`Joining as ${username}...`);
+        }
+        
+        function handlePAKEChallenge(data) {
+            try {
+                log('Starting PAKE authentication...');
+                
+                // Create client message matching the server's expectations
+                const password = "correct-horse-battery-staple";
+                const salt = new Uint8Array(16);
+                for (let i = 0; i < 16; i++) {
+                    salt[i] = Math.floor(Math.random() * 256);
+                }
+                
+                // Simple password hash (for demo)
+                const passwordHash = new Uint8Array(32);
+                for (let i = 0; i < 32; i++) {
+                    passwordHash[i] = Math.floor(Math.random() * 256);
+                }
+                
+                const clientMessage = {
+                    type: "CLIENT_MSG1",
+                    client_id: `client_${document.getElementById('username').value}`,
+                    client_kem_pk: btoa(String.fromCharCode(...new Array(32).fill(0))),
+                    ciphertext_payload: btoa(String.fromCharCode(...salt, ...passwordHash)),
+                    salt: btoa(String.fromCharCode(...salt))
+                };
+                
+                socket.emit('pake_message', {
+                    message: JSON.stringify(clientMessage)
+                });
+                
+                log('Sent PAKE response');
+                
+            } catch (error) {
+                log(`PAKE challenge error: ${error.message}`, 'error');
+            }
+        }
+        
+        function sendMessage() {
+            if (!socket || !socket.connected) {
+                log('Not connected to server', 'error');
+                return;
+            }
+            
+            if (!authenticated) {
+                log('Not authenticated', 'error');
+                return;
+            }
+            
+            if (!gtk) {
+                log('No GTK available', 'error');
+                return;
+            }
+            
+            const message = `Hello from ${document.getElementById('username').value} at ${new Date().toLocaleTimeString()}`;
+            socket.emit('group_chat_message', {
+                message: message
+            });
+            
+            log(`Sent message: ${message}`);
+        }
+    </script>
+</body>
+</html>
+
