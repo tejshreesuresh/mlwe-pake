@@ -1,217 +1,203 @@
-# Quick Start: Hybrid PQ-Classical PAKE + Double Ratchet
+# Quick Start Guide - MLWE-PAKE Project
 
-## What You Get
+## 🚀 Quick Start (Recommended: WebSocket Dashboard)
 
-✅ **Post-Quantum Secure** - Uses NIST-standardized Kyber768
-✅ **Defense-in-Depth** - Hybrid security (PQ + Classical)
-✅ **Forward Secrecy** - Double Ratchet messaging
-✅ **Password Authentication** - Secure PAKE protocol
-✅ **Production-Ready Code** - Fully tested (all 5 test suites pass)
+This is the easiest way to run the project with the full group authentication features.
 
-## 5-Minute Demo
-
-### Step 1: Run Tests (verify installation)
+### Step 1: Install Dependencies
 
 ```bash
-python test_hybrid_system.py
+# Make sure you're in the project directory
+cd /Users/tejshreesuresh/Documents/GitHub/mlwe-pake
+
+# Install Python dependencies
+# On macOS/Linux, use pip3 if pip doesn't work:
+pip3 install -r requirements.txt
+
+# Or try:
+python3 -m pip install -r requirements.txt
 ```
 
-Expected output:
-```
-✅ PASS: Hybrid Cryptography
-✅ PASS: Double Ratchet
-✅ PASS: Hybrid PAKE Protocol
-✅ PASS: Full Integration
-✅ PASS: Forward Secrecy
-
-ALL TESTS PASSED! ✅
-```
-
-### Step 2: Start Server (Terminal 1)
+### Step 2: Start the WebSocket Server
 
 ```bash
-python hybrid_pake_server.py
+# Option A: Using the start script (easiest)
+python3 start_server.py
+
+# Option B: Using uvicorn directly
+python3 -m uvicorn websocket_server:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Output will show:
+You should see:
 ```
-======================================================================
-SERVER PUBLIC KEYS (copy these to hybrid_pake_client.py)
-======================================================================
+============================================================
+MLWE-PAKE Group Authentication Server
+============================================================
 
-SERVER_PQ_PK_B64 = "U4x5JdFzxfYPc8EwoW..."
+Starting server on http://localhost:8000
+Access the dashboard at: http://localhost:8000
 
-SERVER_CLASSICAL_PK_B64 = "S0mrnqgHIeXCtshar/m..."
-
-======================================================================
-
-Server listening on 127.0.0.1:65433
+Press Ctrl+C to stop the server
+============================================================
 ```
 
-### Step 3: Configure Client
+### Step 3: Access the Dashboard
 
-Copy the two public keys from server output and paste into `hybrid_pake_client.py`:
-
-```python
-# Edit these lines in hybrid_pake_client.py:
-SERVER_PQ_PK_B64 = "U4x5JdFzxfYPc8EwoW..."  # ← paste here
-SERVER_CLASSICAL_PK_B64 = "S0mrnqgHIeXCtshar/m..."  # ← paste here
+Open your web browser and navigate to:
+```
+http://localhost:8000
 ```
 
-### Step 4: Run Client (Terminal 2)
+### Step 4: Use the Dashboard
+
+1. **Connect**: Enter a User ID (e.g., `user_1`) and click "Connect"
+2. **Join Group**: Enter a Group ID (e.g., `group_1`) and password, then click "Join Group"
+3. **View Protocol Steps**: All protocol steps with timestamps will appear in the Messages panel
+4. **Test Features**:
+   - Join with multiple users (open multiple browser tabs/windows)
+   - Observe forward secrecy when members leave
+   - Observe history exclusion when new members join
+   - View real-time performance metrics
+
+---
+
+## 🔧 Alternative: Traditional 1-to-1 PAKE
+
+For testing the original socket-based PAKE protocol:
+
+### Step 1: Start the Server
+
+**Terminal 1:**
+```bash
+python pake_server.py
+```
+
+The server will output a base64-encoded public key. **Copy this key!**
+
+### Step 2: Update Client with Server Key
+
+Edit `pake_client.py` and replace the `SERVER_PK_B64` variable with the public key from Step 1.
+
+### Step 3: Run the Client
+
+**Terminal 2:**
+```bash
+python pake_client.py
+```
+
+---
+
+## 📋 Prerequisites Checklist
+
+Before running, ensure you have:
+
+- ✅ **Python 3.9+** installed
+- ✅ **liboqs-python** installed (check with `python3 -c "import oqs; print(oqs.oqs_version())"`)
+- ✅ **All Python dependencies** installed (`pip install -r requirements.txt`)
+
+### Verify liboqs-python Installation
 
 ```bash
-python hybrid_pake_client.py
+python3 -c "import oqs; print('liboqs-python version:', oqs.oqs_version())"
 ```
 
-### Step 5: Watch the Magic! ✨
+If this fails, see the README.md Installation section for detailed setup instructions.
 
-Both terminals will show:
+---
 
-**Server Output:**
-```
-=== Server Processing Client Message 1 ===
-✓ Client password verified successfully
-✓ Session key derived
-✓ Double Ratchet initialized
+## 🐛 Troubleshooting
 
-=== Receiving encrypted messages ===
-✓ Decrypted message 1: "Hello from client!"
-✓ Decrypted message 2: "This is a secure message."
-✓ Decrypted message 3: "Forward secrecy is enabled!"
-```
+### Error: "ModuleNotFoundError: No module named 'oqs'"
 
-**Client Output:**
-```
-=== HYBRID PAKE SUCCESSFUL ===
-Session Key: addc4a461a8ea3bd...
-
-=== DOUBLE RATCHET INITIALIZED ===
-
-=== Sending encrypted messages ===
-✓ Message 1 encrypted and acknowledged
-✓ Message 2 encrypted and acknowledged
-✓ Message 3 encrypted and acknowledged
-```
-
-## What Just Happened?
-
-1. **Hybrid PAKE**: Client and server authenticated using password, establishing a shared session key using BOTH Kyber768 (post-quantum) AND X25519 (classical)
-
-2. **Double Ratchet**: Both parties initialized Double Ratchet with the session key, enabling:
-   - **Forward secrecy**: Even if current keys are stolen, past messages stay secure
-   - **Break-in recovery**: Future messages secure after temporary compromise
-   - **Continuous key evolution**: New key for every message
-
-3. **Encrypted Messaging**: All messages encrypted with AES-256-GCM using ephemeral keys
-
-## Architecture at a Glance
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                    Your Application                      │
-├─────────────────────────────────────────────────────────┤
-│                   Double Ratchet Layer                   │
-│            (Forward Secrecy + Continuous Ratcheting)     │
-├─────────────────────────────────────────────────────────┤
-│              Hybrid PAKE Authentication                  │
-│             (Password + PQ + Classical KEM)              │
-├──────────────────────┬──────────────────────────────────┤
-│   Kyber768 (PQ KEM)  │    X25519 (Classical ECDH)       │
-│  NIST Standardized   │    RFC 7748                      │
-└──────────────────────┴──────────────────────────────────┘
-```
-
-## Key Features
-
-### 🔐 Hybrid Cryptography
-- **Kyber768** (Post-Quantum) - 1184 byte public keys
-- **X25519** (Classical) - 32 byte public keys
-- **Combined Security**: Secure if *either* remains unbroken
-
-### 🔑 Double Ratchet
-- New DH keypair every conversation turn
-- New message key for every message
-- Automatic key deletion after use
-
-### 🛡️ Security Properties
-- ✅ Forward Secrecy
-- ✅ Future Secrecy (Break-in Recovery)
-- ✅ Post-Quantum Resistance
-- ✅ Password Authentication
-- ✅ Transcript Binding
-
-## Files Created
-
-| File | Purpose | Size |
-|------|---------|------|
-| `hybrid_crypto.py` | Hybrid KEM (Kyber + X25519) | 5.9 KB |
-| `double_ratchet.py` | Double Ratchet implementation | 13 KB |
-| `hybrid_pake_protocol.py` | PAKE protocol logic | 10 KB |
-| `hybrid_pake_server.py` | Server implementation | 6.8 KB |
-| `hybrid_pake_client.py` | Client implementation | 6.9 KB |
-| `test_hybrid_system.py` | Comprehensive tests | 14 KB |
-| `HYBRID_PAKE_README.md` | Full documentation | - |
-| `QUICKSTART.md` | This file | - |
-
-**Total**: ~56 KB of production-ready cryptographic code
-
-## Next Steps
-
-1. **Read Full Documentation**: See `HYBRID_PAKE_README.md`
-
-2. **Customize for Your Use Case**:
-   - Change password in both client and server
-   - Modify port number if needed
-   - Adjust message format for your application
-
-3. **Integration**:
-   - Import `hybrid_pake_protocol` into your app
-   - Use `Double Ratchet` for ongoing messaging
-   - Implement key persistence if needed
-
-4. **Production Checklist**:
-   - [ ] Change default password
-   - [ ] Implement server certificate verification
-   - [ ] Add proper error handling
-   - [ ] Implement key storage/rotation
-   - [ ] Add logging and monitoring
-   - [ ] Consider formal security audit
-
-## Troubleshooting
-
-### Tests Fail
+**Solution**: Install liboqs-python bindings:
 ```bash
-# Ensure dependencies installed
-pip install cryptography
-
-# Verify oqs library
-python -c "import oqs; print('oqs version:', oqs.oqs_python_version())"
+cd liboqs-python
+python3 -m build
+pip install dist/*.whl
+cd ..
 ```
 
-### Client Can't Connect
-- Verify server is running
-- Check port 65433 is not blocked
-- Ensure server public keys correctly copied
+### Error: "Address already in use"
 
-### Import Errors
-- Run from `/Users/kunal/repos/mlwe-pake` directory
-- Check Python version (3.8+)
+**Solution**: Port 8000 is already in use. Either:
+- Stop the other process using port 8000
+- Use a different port: `uvicorn websocket_server:app --port 8001`
 
-## Performance Notes
+### Error: "Failed to join group"
 
-- PAKE handshake: ~5ms
-- Message encryption: ~0.1ms
-- Message decryption: ~0.1ms
-- Memory usage: <10MB
+**Solution**: 
+- Make sure the WebSocket connection is established (click "Connect" first)
+- Check that you've entered a Group ID
+- Look at the protocol steps in the Messages panel for detailed error info
 
-Perfect for real-time messaging applications!
+### Dashboard Not Loading
 
-## Questions?
+**Solution**:
+- Check that the server started successfully
+- Verify `templates/index.html` and `static/` files exist
+- Check browser console for JavaScript errors (F12)
 
-See `HYBRID_PAKE_README.md` for:
-- Detailed security analysis
-- Protocol specifications
-- API documentation
-- Security considerations
-- References and citations
+---
+
+## 📚 What You'll See
+
+### WebSocket Dashboard Features
+
+1. **Connection Panel**: Connect/disconnect from WebSocket
+2. **Performance Metrics Panel**: Real-time crypto operation statistics
+3. **Group Management Panel**: Join/leave groups
+4. **Messages Panel**: 
+   - Protocol steps with timestamps
+   - Group messages
+   - Error messages
+   - All color-coded for easy reading
+
+### Protocol Steps You'll See
+
+When joining a group:
+- `1_VALIDATION` - Validating join request
+- `2_GROUP_CREATED` - Group creation (if new)
+- `3_MEMBER_ADD` - Adding member to group
+- `4_HISTORY_EXCLUDED` - History exclusion active
+- `5_KEY_ESTABLISHMENT` - Group key derivation
+- `6_RATCHET_INIT` - Double ratchet initialization
+- `7_JOIN_COMPLETE` - Join successful
+
+When leaving a group:
+- `1_LEAVE_INIT` - Leave process started
+- `2_KEY_UPDATE` - Key updated for forward secrecy
+- `FORWARD_SECRECY_ACTIVE` - Forward secrecy notification
+- `3_LEAVE_COMPLETE` - Leave successful
+
+All steps include timestamps with millisecond precision!
+
+---
+
+## 🔄 Running Multiple Instances
+
+To test group features with multiple users:
+
+1. Start the server once: `python start_server.py`
+2. Open multiple browser tabs/windows
+3. Connect each tab with a different User ID (e.g., `user_1`, `user_2`, `user_3`)
+4. Join the same group with the same password
+5. Observe protocol steps in each tab
+
+---
+
+## 🛑 Stopping the Server
+
+Press `Ctrl+C` in the terminal where the server is running.
+
+---
+
+## 📖 Next Steps
+
+- Read `README.md` for detailed architecture and features
+- Read `FEATURE_CONFIRMATION.md` for feature verification
+- Check `GROUP_FEATURES_README.md` for group-specific documentation
+- Run tests: `python test_mlwe_pake.py`
+
+---
+
+**Happy Testing! 🎉**

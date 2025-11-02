@@ -1,0 +1,441 @@
+/**
+ * Styles for MLWE-PAKE Group Authentication Dashboard
+ */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+    color: #333;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+h1 {
+    color: white;
+    text-align: center;
+    margin-bottom: 30px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    font-size: 2.5em;
+}
+
+.dashboard {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+    height: calc(100vh - 200px);
+}
+
+.left-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+.right-column {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.metrics-log-panel {
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    gap: 20px;
+    color: #00ff00;
+}
+
+.metrics-section {
+    flex: 0 0 auto;
+    border-bottom: 2px solid #333;
+    padding-bottom: 20px;
+}
+
+.metrics-section h2 {
+    color: #00ff00;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #00ff00;
+    padding-bottom: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.log-section {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.log-section h2 {
+    color: #00ff00;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #00ff00;
+    padding-bottom: 10px;
+    font-family: 'Courier New', monospace;
+}
+
+.log-section #messages {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    background: #0a0a0a;
+    padding: 15px;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    color: #00ff00;
+    min-height: 0;
+}
+
+/* Scrollbar styling for black background */
+.metrics-log-panel::-webkit-scrollbar,
+.log-section #messages::-webkit-scrollbar {
+    width: 8px;
+}
+
+.metrics-log-panel::-webkit-scrollbar-track,
+.log-section #messages::-webkit-scrollbar-track {
+    background: #0a0a0a;
+    border-radius: 10px;
+}
+
+.metrics-log-panel::-webkit-scrollbar-thumb,
+.log-section #messages::-webkit-scrollbar-thumb {
+    background: #00ff00;
+    border-radius: 10px;
+}
+
+.metrics-log-panel::-webkit-scrollbar-thumb:hover,
+.log-section #messages::-webkit-scrollbar-thumb:hover {
+    background: #00cc00;
+}
+
+/* Metrics table styling for dark background */
+#metrics {
+    color: #00ff00;
+    font-family: 'Courier New', monospace;
+}
+
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    color: #00ff00;
+}
+
+.metrics-table th {
+    background: #333;
+    color: #00ff00;
+    padding: 10px;
+    text-align: left;
+    font-weight: bold;
+    border: 1px solid #555;
+}
+
+.metrics-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #333;
+    border: 1px solid #333;
+}
+
+.metrics-table tr:hover {
+    background: #1a1a1a;
+}
+
+.panel {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.panel h2 {
+    color: #667eea;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #555;
+}
+
+input[type="text"],
+input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    margin: 5px 0;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+button {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    margin: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    transition: background 0.3s;
+}
+
+button:hover {
+    background: #764ba2;
+}
+
+button:active {
+    transform: scale(0.98);
+}
+
+#connectionStatus,
+#groupStatus {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+/* Metrics table */
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.metrics-table th {
+    background: #667eea;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.metrics-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.metrics-table tr:hover {
+    background: #f5f5f5;
+}
+
+/* Messages panel */
+#messages {
+    max-height: 400px;
+    overflow-y: auto;
+    background: #f9f9f9;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 10px;
+}
+
+.message {
+    background: white;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border-left: 4px solid #667eea;
+    font-size: 12px;
+}
+
+.message .timestamp {
+    color: #666;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.message .message-type {
+    color: #667eea;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.message pre {
+    margin-top: 5px;
+    font-size: 11px;
+    color: #555;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Protocol step styling */
+.protocol-step {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border-left: 5px solid #3498db;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.protocol-step:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.step-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.step-name {
+    font-size: 13px;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}
+
+.step-message {
+    color: #495057;
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 5px 0;
+}
+
+.step-details {
+    font-size: 12px;
+    color: #6c757d;
+    font-style: italic;
+    margin-top: 5px;
+    padding-top: 5px;
+    border-top: 1px dashed #dee2e6;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.message-body {
+    color: #495057;
+    font-size: 12px;
+    line-height: 1.6;
+    margin-top: 5px;
+}
+
+.user-id {
+    color: #667eea;
+    font-weight: bold;
+    margin-left: auto;
+}
+
+/* Protocol step styling for dark background */
+.log-section .protocol-step {
+    background: #0a0a0a;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 8px;
+    border-left: 5px solid #00ff00;
+    box-shadow: 0 2px 4px rgba(0,255,0,0.1);
+}
+
+.log-section .step-message {
+    color: #00ff00;
+}
+
+.log-section .step-details {
+    color: #00cc00;
+    border-top: 1px dashed #333;
+}
+
+.log-section .message {
+    background: #0a0a0a;
+    padding: 10px;
+    margin: 5px 0;
+    border-radius: 5px;
+    border-left: 4px solid #00ff00;
+    font-size: 12px;
+}
+
+.log-section .timestamp {
+    color: #00cc00;
+}
+
+.log-section .message-type {
+    color: #00ff00;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    
+    .metrics-log-panel {
+        height: 600px;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
+    
+    h1 {
+        font-size: 1.8em;
+    }
+    
+    .metrics-table {
+        font-size: 12px;
+    }
+    
+    .metrics-table th,
+    .metrics-table td {
+        padding: 5px;
+    }
+    
+    .metrics-log-panel {
+        height: 500px;
+    }
+}
+
+

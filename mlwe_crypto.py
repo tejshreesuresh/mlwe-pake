@@ -2,6 +2,7 @@ import oqs
 import hashlib
 import os
 import base64
+from crypto_instrumentation import instrumented
 
 # --- Configuration ---
 # Choose a KEM mechanism supported by liboqs, e.g., Kyber variants
@@ -12,6 +13,7 @@ KEM_ALG = "Kyber768"
 
 # --- KEM Operations ---
 
+@instrumented("kem_key_generation")
 def generate_kem_keys():
     """Generates a public/private key pair for the chosen KEM."""
     with oqs.KeyEncapsulation(KEM_ALG) as kem:
@@ -24,6 +26,7 @@ def generate_kem_keys():
         print(f"Public key (base64): {public_key_b64}")
         return public_key, secret_key
 
+@instrumented("kem_encapsulation")
 def kem_encapsulate(public_key, payload=None):
     """Encapsulates a shared secret using the recipient's public key.
     If payload is provided, it will be encapsulated along with the shared secret."""
@@ -39,6 +42,7 @@ def kem_encapsulate(public_key, payload=None):
             print(f"Encapsulated secret. Ciphertext length: {len(ciphertext)}, Secret length: {len(shared_secret_e)}")
             return ciphertext, shared_secret_e
 
+@instrumented("kem_decapsulation")
 def kem_decapsulate(secret_key, ciphertext):
     """Decapsulates a shared secret using the recipient's secret key."""
     with oqs.KeyEncapsulation(KEM_ALG) as kem:
